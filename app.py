@@ -13,16 +13,18 @@ if not os.path.exists(DOWNLOAD_DIR):
 
 def cleanup_old_files():
     while True:
-        time.sleep(1800)
+        time.sleep(300) # الفحص كل 5 دقائق
         try:
             now = time.time()
             for f in os.listdir(DOWNLOAD_DIR):
                 filepath = os.path.join(DOWNLOAD_DIR, f)
-                if os.path.isfile(filepath) and os.stat(filepath).st_mtime < now - 3600:
+                # حذف أي ملف مر عليه 15 دقيقة (900 ثانية)
+                if os.path.isfile(filepath) and os.stat(filepath).st_mtime < now - 900:
                     os.remove(filepath)
         except Exception as e:
             pass
 
+# تشغيل التنظيف في الخلفية
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 @app.route('/api/extract', methods=['POST'])
@@ -48,7 +50,6 @@ def extract():
             
             available_formats = []
             
-            # تجهيز رابط الدمج الخارق لـ 1080p
             server_url = request.host_url.rstrip('/')
             merged_1080p_url = f"{server_url}/api/download?url={url}"
             
@@ -112,7 +113,7 @@ def download():
 
 @app.route('/', methods=['GET'])
 def home():
-    return "Pro Downloader Backend is Running on Render! 🚀"
+    return "Pro Downloader Backend is Running on Railway! 🚀"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
