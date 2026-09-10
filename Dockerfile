@@ -14,8 +14,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# فتح المنفذ الذي تستخدمه منصة Render
-EXPOSE 10000
-
-# تشغيل السيرفر
-CMD ["gunicorn", "-b", "0.0.0.0:10000", "app:app"]
+# تشغيل السيرفر مع ربطه بمنفذ Railway الديناميكي
+CMD gunicorn -b 0.0.0.0:$PORT app:app
