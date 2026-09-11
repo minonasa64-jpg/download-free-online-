@@ -26,20 +26,18 @@ def cleanup_old_files():
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 # -------------------------------------------------------------
-# الإعدادات السحرية لتخطي حظر يوتيوب (Bot Protection)
+# الإعدادات السحرية لتخطي حظر يوتيوب باستخدام الكوكيز
 # -------------------------------------------------------------
 ydl_base_opts = {
     'quiet': True,
     'no_warnings': True,
-    'nocheckcertificate': True,     # تجاهل فحص الشهادات الذي يسبب مشاكل
-    'geo_bypass': True,             # تخطي الحظر الجغرافي
-    'legacy_server_connect': True,  # استخدام اتصال سيرفر قديم لتجنب الفلاتر الجديدة
-    'extractor_retries': 3,         # المحاولة 3 مرات في حال الفشل
-    'http_headers': {               # انتحال شخصية متصفح حقيقي (Anti-Bot)
+    'nocheckcertificate': True,
+    'geo_bypass': True,
+    'extractor_retries': 3,
+    # هنا يتم توجيه yt_dlp لاستخدام ملف الكوكيز
+    'cookiefile': 'cookies.txt', 
+    'http_headers': {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-us,en;q=0.5',
-        'Sec-Fetch-Mode': 'navigate'
     }
 }
 
@@ -54,7 +52,6 @@ def extract():
     if not url:
         return jsonify({'status': 'error', 'message': 'No URL provided'}), 400
 
-    # دمج إعدادات التخطي مع إعدادات الاستخراج
     opts = ydl_base_opts.copy()
     opts['skip_download'] = True
 
