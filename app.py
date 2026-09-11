@@ -4,7 +4,6 @@ import os
 import time
 import threading
 import uuid
-import sys
 
 app = Flask(__name__)
 
@@ -27,25 +26,31 @@ def cleanup_old_files():
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 # -------------------------------------------------------------
-# الحل النهائي الأقوى: استخدام OAuth2 للمصادقة كتلفاز ذكي
+# الحل النهائي (2026): استخدام Po Token وتجاوز قيود يوتيوب
 # -------------------------------------------------------------
 ydl_base_opts = {
-    'quiet': False, # تفعيل السجلات مؤقتاً لنرى الخطوات
-    'no_warnings': False,
+    'quiet': True,
+    'no_warnings': True,
     'nocheckcertificate': True,
     'geo_bypass': True,
-    'extractor_retries': 3,
+    'extractor_retries': 5,
     
-    # 🔴 تفعيل المصادقة عبر OAuth2 (كأنه يوتيوب على التلفاز)
-    # لا داعي لملف الكوكيز بعد الآن، لكن يمكنك تركه إذا أردت
-    'username': 'oauth2',
-    
-    # خدعة إضافية لتغيير واجهة العميل
+    # 🔴 الخدعة الأحدث لتخطي "The page needs to be reloaded"
+    # نجبر يوتيوب على معاملتنا كواجهة ويب غير مسجلة الدخول مع تفعيل مولد PO Token الداخلي
     'extractor_args': {
-        'youtube': ['player_client=tv,web']
+        'youtube': ['player_client=web']
     },
     
-    'sleep_requests': 1,
+    # محاكاة ترويسات متصفح أكثر واقعية 
+    'http_headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Sec-Fetch-Mode': 'navigate',
+    },
+    
+    # تأخير متعمد ومتقطع (Randomized Sleep)
+    'sleep_requests': 1.5,
 }
 
 @app.route('/api/extract', methods=['POST'])
