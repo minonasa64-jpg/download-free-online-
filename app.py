@@ -26,7 +26,7 @@ def cleanup_old_files():
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 # -------------------------------------------------------------
-# إعدادات التخطي الآمنة والمستقرة (بدون مكتبات تسبب انهيار السيرفر)
+# الإعدادات المحدثة لمحاولة تخطي "The page needs to be reloaded"
 # -------------------------------------------------------------
 ydl_base_opts = {
     'quiet': True,
@@ -35,16 +35,28 @@ ydl_base_opts = {
     'geo_bypass': True,
     'extractor_retries': 3,
     
-    # 🔴 ملف الكوكيز الخاص بك (تأكد من وجوده في Railway باسم cookies.txt)
-    'cookiefile': 'cookies.txt', 
+    # 🔴 تأكد 100% أن ملف cookies.txt موجود فعلياً في نفس مسار السيرفر
+    # وأن صيغته صحيحة (Netscape format)
+    'cookiefile': 'cookies.txt',
     
-    # 🔴 الخدعة الأقوى والأكثر استقراراً: انتحال شخصية تلفاز ذكي وهاتف معاً
+    # 🔴 استخدام واجهات متعددة لزيادة فرص التخطي (web, android, ios)
     'extractor_args': {
-        'youtube': ['player_client=tv,android,ios'] 
+        'youtube': ['player_client=android,web,ios']
     },
+    
+    # محاكاة ترويسات متصفح أكثر واقعية
     'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    }
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+    },
+    # تأخير متعمد ومتقطع (Randomized Sleep) لتبدو كإنسان
+    'sleep_requests': 1.5,
+    'sleep_interval': 2,
+    'max_sleep_interval': 5,
 }
 
 @app.route('/api/extract', methods=['POST'])
@@ -117,9 +129,8 @@ def extract():
             })
     except Exception as e:
         error_msg = str(e)
-        # حماية ضد الأخطاء الفارغة: إذا كان الخطأ فارغاً نكتب رسالة واضحة
         if not error_msg or error_msg.strip() == '':
-            error_msg = "انهيار داخلي في السيرفر أو أن الكوكيز غير صالحة."
+             error_msg = "حدث خطأ غير متوقع أثناء استخراج البيانات."
         return jsonify({'status': 'error', 'message': error_msg}), 500
 
 @app.route('/api/download', methods=['GET'])
@@ -175,7 +186,7 @@ def download_audio():
 
 @app.route('/', methods=['GET'])
 def home():
-    return "Boykta Backend is Running Smoothly! 🚀"
+    return "Boykta Backend is Running! 🚀"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
