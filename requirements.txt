@@ -2,3 +2,4 @@ Flask
 yt-dlp>=2024.08.06
 waitress
 gunicorn
+curl-cffi
