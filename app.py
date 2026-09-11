@@ -26,19 +26,22 @@ def cleanup_old_files():
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 # -------------------------------------------------------------
-# الإعدادات السحرية لتخطي حظر يوتيوب باستخدام الكوكيز
+# الحل النهائي لتخطي خطأ "The page needs to be reloaded"
 # -------------------------------------------------------------
 ydl_base_opts = {
     'quiet': True,
     'no_warnings': True,
     'nocheckcertificate': True,
     'geo_bypass': True,
-    'extractor_retries': 3,
-    # هنا يتم توجيه yt_dlp لاستخدام ملف الكوكيز
-    'cookiefile': 'cookies.txt', 
-    'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-    }
+    'extractor_retries': 5,
+    'cookiefile': 'cookies.txt', # ملف الكوكيز الخاص بك
+    
+    # 🔴 الخدعة السحرية: إجبار يوتيوب على معاملة الطلب كتطبيق أندرويد لتخطي فحص المتصفح
+    'extractor_args': {
+        'youtube': ['player_client=android,web']
+    },
+    # تأخير بسيط جداً لكي لا يكتشف يوتيوب السرعة الآلية للروبوت
+    'sleep_requests': 1, 
 }
 
 @app.route('/api/extract', methods=['POST'])
