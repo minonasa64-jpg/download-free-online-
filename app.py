@@ -25,9 +25,26 @@ def cleanup_old_files():
 
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
+# -------------------------------------------------------------
+# الإعدادات السحرية لتخطي حظر يوتيوب (Bot Protection)
+# -------------------------------------------------------------
+ydl_base_opts = {
+    'quiet': True,
+    'no_warnings': True,
+    'nocheckcertificate': True,     # تجاهل فحص الشهادات الذي يسبب مشاكل
+    'geo_bypass': True,             # تخطي الحظر الجغرافي
+    'legacy_server_connect': True,  # استخدام اتصال سيرفر قديم لتجنب الفلاتر الجديدة
+    'extractor_retries': 3,         # المحاولة 3 مرات في حال الفشل
+    'http_headers': {               # انتحال شخصية متصفح حقيقي (Anti-Bot)
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-us,en;q=0.5',
+        'Sec-Fetch-Mode': 'navigate'
+    }
+}
+
 @app.route('/api/extract', methods=['POST'])
 def extract():
-    # دعم استقبال البيانات بصيغة JSON أو FormData
     url = None
     if request.is_json:
         url = request.json.get('url')
@@ -37,14 +54,12 @@ def extract():
     if not url:
         return jsonify({'status': 'error', 'message': 'No URL provided'}), 400
 
-    ydl_opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'skip_download': True,
-    }
+    # دمج إعدادات التخطي مع إعدادات الاستخراج
+    opts = ydl_base_opts.copy()
+    opts['skip_download'] = True
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
             
             title = info.get('title', 'Video')
@@ -54,7 +69,6 @@ def extract():
             available_formats = []
             server_url = request.host_url.rstrip('/')
             
-            # 1. إضافة جودة الفيديو 1080p عبر السيرفر
             available_formats.append({
                 'format_id': '1080p_server_merged',
                 'quality': '1080p',
@@ -67,7 +81,6 @@ def extract():
                 'filesize': None
             })
             
-            # 2. إضافة جودة الصوت MP3 عبر السيرفر (لحل مشكلة البطء وصيغة الفيديو)
             available_formats.append({
                 'format_id': 'server_audio_mp3',
                 'quality': 'Audio',
@@ -111,18 +124,17 @@ def download():
     filename = f"video_{uuid.uuid4().hex}.mp4"
     filepath = os.path.join(DOWNLOAD_DIR, filename)
     
-    ydl_opts = {
+    opts = ydl_base_opts.copy()
+    opts.update({
         'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best',
         'outtmpl': filepath,
         'merge_output_format': 'mp4',
-        'quiet': True,
-        'no_warnings': True,
-    }
+    })
     
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(opts) as ydl:
             ydl.download([url])
-        return send_file(filepath, as_attachment=True, download_name="ProDownloader_Video.mp4")
+        return send_file(filepath, as_attachment=True, download_name="Boykta_Video.mp4")
     except Exception as e:
         return str(e), 500
 
@@ -135,7 +147,8 @@ def download_audio():
     base_name = f"audio_{uuid.uuid4().hex}"
     filepath = os.path.join(DOWNLOAD_DIR, base_name)
     
-    ydl_opts = {
+    opts = ydl_base_opts.copy()
+    opts.update({
         'format': 'bestaudio/best',
         'outtmpl': filepath + '.%(ext)s',
         'postprocessors': [{
@@ -143,21 +156,19 @@ def download_audio():
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'quiet': True,
-        'no_warnings': True,
-    }
+    })
     
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(opts) as ydl:
             ydl.download([url])
         final_file = filepath + '.mp3'
-        return send_file(final_file, as_attachment=True, download_name="ProDownloader_Audio.mp3")
+        return send_file(final_file, as_attachment=True, download_name="Boykta_Audio.mp3")
     except Exception as e:
         return str(e), 500
 
 @app.route('/', methods=['GET'])
 def home():
-    return "Pro Downloader Backend is Running! 🚀"
+    return "Boykta Backend is Running Smoothly! 🚀"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
