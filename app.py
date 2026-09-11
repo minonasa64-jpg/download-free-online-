@@ -26,7 +26,7 @@ def cleanup_old_files():
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 # -------------------------------------------------------------
-# الحل النهائي لتخطي خطأ "The page needs to be reloaded"
+# الحل النهائي المتقدم لتخطي كل أنواع حظر يوتيوب
 # -------------------------------------------------------------
 ydl_base_opts = {
     'quiet': True,
@@ -34,13 +34,17 @@ ydl_base_opts = {
     'nocheckcertificate': True,
     'geo_bypass': True,
     'extractor_retries': 5,
-    'cookiefile': 'cookies.txt', # ملف الكوكيز الخاص بك
+    'cookiefile': 'cookies.txt', 
     
-    # 🔴 الخدعة السحرية: إجبار يوتيوب على معاملة الطلب كتطبيق أندرويد لتخطي فحص المتصفح
+    # محاكاة عميل يوتيوب على الأندرويد والتلفاز الذكي
     'extractor_args': {
-        'youtube': ['player_client=android,web']
+        'youtube': ['player_client=android,web,tv']
     },
-    # تأخير بسيط جداً لكي لا يكتشف يوتيوب السرعة الآلية للروبوت
+    
+    # 🔴 الخدعة الأقوى: استخدام بصمة متصفح حقيقي (Chrome 110) 
+    # هذه الميزة تتطلب تثبيت curl-cffi في requirements.txt
+    'impersonate': 'chrome110', 
+    
     'sleep_requests': 1, 
 }
 
