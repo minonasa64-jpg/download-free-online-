@@ -26,26 +26,25 @@ def cleanup_old_files():
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 # -------------------------------------------------------------
-# الحل النهائي المتقدم لتخطي كل أنواع حظر يوتيوب
+# إعدادات التخطي الآمنة والمستقرة (بدون مكتبات تسبب انهيار السيرفر)
 # -------------------------------------------------------------
 ydl_base_opts = {
     'quiet': True,
     'no_warnings': True,
     'nocheckcertificate': True,
     'geo_bypass': True,
-    'extractor_retries': 5,
+    'extractor_retries': 3,
+    
+    # 🔴 ملف الكوكيز الخاص بك (تأكد من وجوده في Railway باسم cookies.txt)
     'cookiefile': 'cookies.txt', 
     
-    # محاكاة عميل يوتيوب على الأندرويد والتلفاز الذكي
+    # 🔴 الخدعة الأقوى والأكثر استقراراً: انتحال شخصية تلفاز ذكي وهاتف معاً
     'extractor_args': {
-        'youtube': ['player_client=android,web,tv']
+        'youtube': ['player_client=tv,android,ios'] 
     },
-    
-    # 🔴 الخدعة الأقوى: استخدام بصمة متصفح حقيقي (Chrome 110) 
-    # هذه الميزة تتطلب تثبيت curl-cffi في requirements.txt
-    'impersonate': 'chrome110', 
-    
-    'sleep_requests': 1, 
+    'http_headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    }
 }
 
 @app.route('/api/extract', methods=['POST'])
@@ -57,7 +56,7 @@ def extract():
         url = request.form.get('url')
         
     if not url:
-        return jsonify({'status': 'error', 'message': 'No URL provided'}), 400
+        return jsonify({'status': 'error', 'message': 'لم يتم إرسال أي رابط'}), 400
 
     opts = ydl_base_opts.copy()
     opts['skip_download'] = True
@@ -117,7 +116,11 @@ def extract():
                 'formats': available_formats
             })
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        error_msg = str(e)
+        # حماية ضد الأخطاء الفارغة: إذا كان الخطأ فارغاً نكتب رسالة واضحة
+        if not error_msg or error_msg.strip() == '':
+            error_msg = "انهيار داخلي في السيرفر أو أن الكوكيز غير صالحة."
+        return jsonify({'status': 'error', 'message': error_msg}), 500
 
 @app.route('/api/download', methods=['GET'])
 def download():
