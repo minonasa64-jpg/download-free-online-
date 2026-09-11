@@ -4,6 +4,7 @@ import os
 import time
 import threading
 import uuid
+import sys
 
 app = Flask(__name__)
 
@@ -26,37 +27,25 @@ def cleanup_old_files():
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 # -------------------------------------------------------------
-# الإعدادات المحدثة لمحاولة تخطي "The page needs to be reloaded"
+# الحل النهائي الأقوى: استخدام OAuth2 للمصادقة كتلفاز ذكي
 # -------------------------------------------------------------
 ydl_base_opts = {
-    'quiet': True,
-    'no_warnings': True,
+    'quiet': False, # تفعيل السجلات مؤقتاً لنرى الخطوات
+    'no_warnings': False,
     'nocheckcertificate': True,
     'geo_bypass': True,
     'extractor_retries': 3,
     
-    # 🔴 تأكد 100% أن ملف cookies.txt موجود فعلياً في نفس مسار السيرفر
-    # وأن صيغته صحيحة (Netscape format)
-    'cookiefile': 'cookies.txt',
+    # 🔴 تفعيل المصادقة عبر OAuth2 (كأنه يوتيوب على التلفاز)
+    # لا داعي لملف الكوكيز بعد الآن، لكن يمكنك تركه إذا أردت
+    'username': 'oauth2',
     
-    # 🔴 استخدام واجهات متعددة لزيادة فرص التخطي (web, android, ios)
+    # خدعة إضافية لتغيير واجهة العميل
     'extractor_args': {
-        'youtube': ['player_client=android,web,ios']
+        'youtube': ['player_client=tv,web']
     },
     
-    # محاكاة ترويسات متصفح أكثر واقعية
-    'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-    },
-    # تأخير متعمد ومتقطع (Randomized Sleep) لتبدو كإنسان
-    'sleep_requests': 1.5,
-    'sleep_interval': 2,
-    'max_sleep_interval': 5,
+    'sleep_requests': 1,
 }
 
 @app.route('/api/extract', methods=['POST'])
