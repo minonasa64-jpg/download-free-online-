@@ -13,7 +13,7 @@ if not os.path.exists(DOWNLOAD_DIR):
 
 def cleanup_old_files():
     while True:
-        time.sleep(300) # الفحص كل 5 دقائق
+        time.sleep(300)
         try:
             now = time.time()
             for f in os.listdir(DOWNLOAD_DIR):
@@ -27,8 +27,13 @@ threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 @app.route('/api/extract', methods=['POST'])
 def extract():
-    data = request.json
-    url = data.get('url')
+    # دعم استقبال البيانات بصيغة JSON أو FormData
+    url = None
+    if request.is_json:
+        url = request.json.get('url')
+    else:
+        url = request.form.get('url')
+        
     if not url:
         return jsonify({'status': 'error', 'message': 'No URL provided'}), 400
 
@@ -47,61 +52,46 @@ def extract():
             formats = info.get('formats', [])
             
             available_formats = []
-            
-            # خيار دمج السيرفر للفيديو العالي
             server_url = request.host_url.rstrip('/')
-            merged_1080p_url = f"{server_url}/api/download?url={url}"
             
+            # 1. إضافة جودة الفيديو 1080p عبر السيرفر
             available_formats.append({
                 'format_id': '1080p_server_merged',
                 'quality': '1080p',
-                'format_note': 'FHD 1080p (دمج السيرفر ⚡)',
+                'format_note': 'فيديو 1080p (تحميل سريع ⚡)',
                 'resolution': '1080p',
                 'ext': 'mp4',
-                'url': merged_1080p_url,
+                'url': f"{server_url}/api/download?url={url}",
                 'acodec': 'mp4a', 
                 'vcodec': 'avc1',
                 'filesize': None
             })
+            
+            # 2. إضافة جودة الصوت MP3 عبر السيرفر (لحل مشكلة البطء وصيغة الفيديو)
+            available_formats.append({
+                'format_id': 'server_audio_mp3',
+                'quality': 'Audio',
+                'format_note': 'صوت عالي الجودة MP3 (تحميل سريع ⚡)',
+                'resolution': 'Audio',
+                'ext': 'mp3',
+                'url': f"{server_url}/api/download_audio?url={url}",
+                'acodec': 'mp3', 
+                'vcodec': 'none',
+                'filesize': None
+            })
 
-            # تصفية وفصل الجودات بدقة عالية
             for f in formats:
-                vcodec = f.get('vcodec', 'none')
-                acodec = f.get('acodec', 'none')
-                ext = f.get('ext', '')
-                
-                # إذا كان الصوت صافياً (بدون فيديو)
-                is_audio_only = (vcodec == 'none' or vcodec is None) and (acodec != 'none' and acodec is not None)
-                
-                if is_audio_only:
-                    # فرض صيغة m4a أو mp3 لضمان السرعة والتشغيل السليم كموسيقى
-                    audio_ext = 'm4a' if ext in ['m4a', 'mp4'] else 'mp3'
-                    note = f.get('format_note') or f.get('abr') or 'Standard Audio'
-                    
-                    available_formats.append({
-                        'format_id': f.get('format_id'),
-                        'quality': 'audio',
-                        'format_note': f"صوت ({note})",
-                        'resolution': 'Audio',
-                        'ext': audio_ext,
-                        'url': f.get('url'),
-                        'acodec': acodec,
-                        'vcodec': 'none',
-                        'filesize': f.get('filesize')
-                    })
-                elif vcodec != 'none':
-                    # صيغ الفيديوهات العادية
-                    available_formats.append({
-                        'format_id': f.get('format_id'),
-                        'quality': f.get('quality'),
-                        'format_note': f.get('format_note'),
-                        'resolution': f.get('resolution'),
-                        'ext': 'mp4' if ext in ['mp4', 'm4v'] else ext,
-                        'url': f.get('url'),
-                        'acodec': acodec,
-                        'vcodec': vcodec,
-                        'filesize': f.get('filesize')
-                    })
+                available_formats.append({
+                    'format_id': f.get('format_id'),
+                    'quality': f.get('quality'),
+                    'format_note': f.get('format_note'),
+                    'resolution': f.get('resolution'),
+                    'ext': f.get('ext'),
+                    'url': f.get('url'),
+                    'acodec': f.get('acodec'),
+                    'vcodec': f.get('vcodec'),
+                    'filesize': f.get('filesize')
+                })
 
             return jsonify({
                 'status': 'success',
@@ -132,13 +122,42 @@ def download():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        return send_file(filepath, as_attachment=True, download_name="Boykta_Video.mp4")
+        return send_file(filepath, as_attachment=True, download_name="ProDownloader_Video.mp4")
+    except Exception as e:
+        return str(e), 500
+
+@app.route('/api/download_audio', methods=['GET'])
+def download_audio():
+    url = request.args.get('url')
+    if not url:
+        return "No URL provided", 400
+    
+    base_name = f"audio_{uuid.uuid4().hex}"
+    filepath = os.path.join(DOWNLOAD_DIR, base_name)
+    
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': filepath + '.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'quiet': True,
+        'no_warnings': True,
+    }
+    
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+        final_file = filepath + '.mp3'
+        return send_file(final_file, as_attachment=True, download_name="ProDownloader_Audio.mp3")
     except Exception as e:
         return str(e), 500
 
 @app.route('/', methods=['GET'])
 def home():
-    return "Boykta Backend is Running on Railway! 🚀"
+    return "Pro Downloader Backend is Running! 🚀"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
