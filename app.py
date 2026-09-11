@@ -18,13 +18,11 @@ def cleanup_old_files():
             now = time.time()
             for f in os.listdir(DOWNLOAD_DIR):
                 filepath = os.path.join(DOWNLOAD_DIR, f)
-                # حذف أي ملف مر عليه 15 دقيقة (900 ثانية)
                 if os.path.isfile(filepath) and os.stat(filepath).st_mtime < now - 900:
                     os.remove(filepath)
         except Exception as e:
             pass
 
-# تشغيل التنظيف في الخلفية
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 @app.route('/api/extract', methods=['POST'])
@@ -50,6 +48,7 @@ def extract():
             
             available_formats = []
             
+            # خيار دمج السيرفر للفيديو العالي
             server_url = request.host_url.rstrip('/')
             merged_1080p_url = f"{server_url}/api/download?url={url}"
             
@@ -65,18 +64,44 @@ def extract():
                 'filesize': None
             })
 
+            # تصفية وفصل الجودات بدقة عالية
             for f in formats:
-                available_formats.append({
-                    'format_id': f.get('format_id'),
-                    'quality': f.get('quality'),
-                    'format_note': f.get('format_note'),
-                    'resolution': f.get('resolution'),
-                    'ext': f.get('ext'),
-                    'url': f.get('url'),
-                    'acodec': f.get('acodec'),
-                    'vcodec': f.get('vcodec'),
-                    'filesize': f.get('filesize')
-                })
+                vcodec = f.get('vcodec', 'none')
+                acodec = f.get('acodec', 'none')
+                ext = f.get('ext', '')
+                
+                # إذا كان الصوت صافياً (بدون فيديو)
+                is_audio_only = (vcodec == 'none' or vcodec is None) and (acodec != 'none' and acodec is not None)
+                
+                if is_audio_only:
+                    # فرض صيغة m4a أو mp3 لضمان السرعة والتشغيل السليم كموسيقى
+                    audio_ext = 'm4a' if ext in ['m4a', 'mp4'] else 'mp3'
+                    note = f.get('format_note') or f.get('abr') or 'Standard Audio'
+                    
+                    available_formats.append({
+                        'format_id': f.get('format_id'),
+                        'quality': 'audio',
+                        'format_note': f"صوت ({note})",
+                        'resolution': 'Audio',
+                        'ext': audio_ext,
+                        'url': f.get('url'),
+                        'acodec': acodec,
+                        'vcodec': 'none',
+                        'filesize': f.get('filesize')
+                    })
+                elif vcodec != 'none':
+                    # صيغ الفيديوهات العادية
+                    available_formats.append({
+                        'format_id': f.get('format_id'),
+                        'quality': f.get('quality'),
+                        'format_note': f.get('format_note'),
+                        'resolution': f.get('resolution'),
+                        'ext': 'mp4' if ext in ['mp4', 'm4v'] else ext,
+                        'url': f.get('url'),
+                        'acodec': acodec,
+                        'vcodec': vcodec,
+                        'filesize': f.get('filesize')
+                    })
 
             return jsonify({
                 'status': 'success',
@@ -107,13 +132,13 @@ def download():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        return send_file(filepath, as_attachment=True, download_name="ProDownloader_1080p.mp4")
+        return send_file(filepath, as_attachment=True, download_name="Boykta_Video.mp4")
     except Exception as e:
         return str(e), 500
 
 @app.route('/', methods=['GET'])
 def home():
-    return "Pro Downloader Backend is Running on Railway! 🚀"
+    return "Boykta Backend is Running on Railway! 🚀"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
